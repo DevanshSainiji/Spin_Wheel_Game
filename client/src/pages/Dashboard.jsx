@@ -25,6 +25,12 @@ export default function Dashboard({ onNavigate }) {
   }, [user]);
 
   useEffect(() => {
+    if (user?.role === 'ADMIN' && token) {
+      loadAdminStats();
+    }
+  }, [user, token]);
+
+  useEffect(() => {
     loadData();
     const socket = getSocket();
     if (socket) {
@@ -58,11 +64,7 @@ export default function Dashboard({ onNavigate }) {
   }, []);
 
   async function loadData() {
-    const promises = [loadActiveWheel(), loadHistory(), loadTransactions()];
-    if (user?.role === 'ADMIN') {
-      promises.push(loadAdminStats());
-    }
-    await Promise.all(promises);
+    await Promise.all([loadActiveWheel(), loadHistory(), loadTransactions()]);
   }
 
   async function loadActiveWheel() {

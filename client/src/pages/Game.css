@@ -1,0 +1,105 @@
+.game-page { min-height: 100vh; }
+
+.game-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 2rem; background: var(--card-bg); border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100;
+}
+.game-header h1 { font-size: 1.3rem; }
+.btn-back { padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; transition: all 0.3s; font-size: 0.9rem; }
+.btn-back:hover { border-color: var(--accent); }
+
+.game-loading { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+.spinner-lg { width: 50px; height: 50px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+.game-layout { display: grid; grid-template-columns: 1fr 340px; gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+/* Wheel */
+.game-center { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
+
+.wheel-container { position: relative; width: 360px; height: 360px; }
+.wheel-ring { width: 100%; height: 100%; border-radius: 50%; position: relative; border: 3px solid var(--border); background: var(--card-bg); overflow: hidden; transition: transform 0.5s; }
+.wheel-container.spinning .wheel-ring { animation: wheelSpin 3s cubic-bezier(0.17, 0.67, 0.12, 0.99) infinite; }
+@keyframes wheelSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.wheel-segment { position: absolute; width: 50%; height: 50%; left: 50%; top: 50%; transform-origin: 0% 0%; transform: rotate(var(--angle)) skewY(calc(90deg - 360deg / max(var(--count, 8), 1))); }
+.segment-name {
+  position: absolute; top: 30%; left: 10%;
+  font-size: 0.75rem; font-weight: 600; color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  transform: rotate(calc(180deg / max(var(--count, 8), 1)));
+}
+.wheel-segment.me .segment-name { color: #f59e0b; }
+
+.wheel-center-circle {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 90px; height: 90px; border-radius: 50%;
+  background: var(--bg); border: 3px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.1rem; z-index: 2;
+  box-shadow: 0 0 30px rgba(99,102,241,0.3);
+}
+.active-text { color: #10b981; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Elimination Flash */
+.elimination-flash {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(239,68,68,0.95); color: white;
+  padding: 2rem 3rem; border-radius: 20px; text-align: center; z-index: 200;
+  animation: flashIn 0.3s ease-out, flashOut 0.3s ease-in 2.5s forwards;
+  box-shadow: 0 25px 60px rgba(239,68,68,0.5);
+}
+.flash-x { display: block; font-size: 3rem; margin-bottom: 0.5rem; }
+.flash-name { display: block; font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+.flash-text { font-size: 0.9rem; opacity: 0.8; letter-spacing: 2px; }
+@keyframes flashIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes flashOut { to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } }
+
+/* Winner Banner */
+.winner-banner {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(99,102,241,0.15));
+  border: 2px solid rgba(245,158,11,0.4); border-radius: 20px;
+  padding: 2rem; text-align: center; width: 100%;
+  animation: winnerPop 0.5s ease-out;
+}
+@keyframes winnerPop { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+.winner-confetti { font-size: 3rem; animation: bounce 0.8s infinite; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.winner-banner h2 { font-size: 1.5rem; margin: 0.5rem 0 1rem; background: linear-gradient(135deg, #f59e0b, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.payout-details { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+.payout-item { display: flex; justify-content: space-between; padding: 0.5rem 1rem; background: var(--bg-secondary); border-radius: 8px; font-size: 0.9rem; }
+.payout-amount { font-weight: 700; color: #10b981; }
+.payout-item.dim { opacity: 0.6; }
+.winner-me { margin-top: 1rem; padding: 0.6rem; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 10px; color: white; font-weight: 700; font-size: 1.1rem; }
+
+/* Sidebar */
+.game-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+.sidebar-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem; }
+.sidebar-card h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+
+.info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
+.info-row:last-child { border-bottom: none; }
+.info-row span:first-child { color: var(--text-dim); }
+.prize-text { color: #f59e0b; font-weight: 700; }
+
+.player-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.player-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 0.85rem; }
+.player-item.me { background: rgba(99,102,241,0.1); font-weight: 600; }
+.player-item.eliminated { opacity: 0.5; text-decoration: line-through; }
+.player-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.player-dot.green { background: #10b981; }
+.player-dot.red { background: #ef4444; }
+.elim-order { margin-left: auto; font-size: 0.75rem; color: var(--text-dim); }
+
+/* Game Log */
+.log-card { max-height: 250px; display: flex; flex-direction: column; }
+.game-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.3rem; max-height: 180px; }
+.log-entry { font-size: 0.8rem; display: flex; gap: 0.5rem; padding: 0.25rem 0; }
+.log-time { color: var(--text-dim); font-size: 0.7rem; white-space: nowrap; }
+.log-empty { color: var(--text-dim); font-size: 0.8rem; font-style: italic; text-align: center; }
+
+@media (max-width: 768px) {
+  .game-layout { grid-template-columns: 1fr; }
+  .wheel-container { width: 280px; height: 280px; }
+}

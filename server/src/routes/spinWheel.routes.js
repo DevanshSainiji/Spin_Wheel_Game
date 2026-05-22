@@ -11,6 +11,7 @@ const {
   getTransactions,
   getConfig,
   updateConfig,
+  getAdminStats,
 } = require('../controllers/spinWheel.controller');
 
 // Spin Wheel routes
@@ -27,5 +28,6 @@ router.get('/user/transactions', authenticate, getTransactions);
 // Config routes (Admin only)
 router.get('/admin/config', authenticate, authorize('ADMIN'), getConfig);
 router.put('/admin/config/:key', authenticate, authorize('ADMIN'), updateConfig);
+router.get('/admin/stats', authenticate, authorize('ADMIN'), getAdminStats);
 
 module.exports = router;

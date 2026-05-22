@@ -407,6 +407,59 @@ function runEliminationsAsync(spinWheelId, io) {
   });
 }
 
+/**
+ * Get statistics/insights (Admin only)
+ * GET /api/spin-wheel/admin/stats
+ */
+async function getAdminStats(req, res, next) {
+  try {
+    const totalCreated = await prisma.spinWheel.count();
+    const totalCompleted = await prisma.spinWheel.count({ where: { status: 'COMPLETED' } });
+    const totalAborted = await prisma.spinWheel.count({ where: { status: 'ABORTED' } });
+    const totalWaiting = await prisma.spinWheel.count({ where: { status: 'WAITING' } });
+    const totalActive = await prisma.spinWheel.count({ where: { status: 'ACTIVE' } });
+
+    // Aggregate statistics
+    const completedWheels = await prisma.spinWheel.findMany({
+      where: { status: 'COMPLETED' },
+      select: {
+        winnerPoolAmount: true,
+        adminPoolAmount: true,
+        appPoolAmount: true,
+        entryFee: true,
+        participants: { select: { id: true } },
+      },
+    });
+
+    const totalAdminCommission = completedWheels.reduce((sum, w) => sum + w.adminPoolAmount, 0);
+    const totalAppPool = completedWheels.reduce((sum, w) => sum + w.appPoolAmount, 0);
+    const totalWinnerPayouts = completedWheels.reduce((sum, w) => sum + w.winnerPoolAmount, 0);
+    
+    // Total coins spent by users on entries
+    const totalCoinsSpent = completedWheels.reduce((sum, w) => sum + (w.entryFee * w.participants.length), 0);
+
+    const totalUsers = await prisma.user.count({ where: { role: 'USER' } });
+
+    res.json({
+      success: true,
+      data: {
+        totalCreated,
+        totalCompleted,
+        totalAborted,
+        totalWaiting,
+        totalActive,
+        totalAdminCommission: Math.round(totalAdminCommission),
+        totalAppPool: Math.round(totalAppPool),
+        totalWinnerPayouts: Math.round(totalWinnerPayouts),
+        totalCoinsSpent: Math.round(totalCoinsSpent),
+        totalUsers,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createSpinWheel,
   joinSpinWheel,
@@ -417,4 +470,5 @@ module.exports = {
   getTransactions,
   getConfig,
   updateConfig,
+  getAdminStats,
 };

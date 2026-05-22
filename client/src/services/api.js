@@ -49,4 +49,7 @@ export const api = {
   // Update config (admin)
   updateConfig: (key, value, token) =>
     request(`/spin-wheel/admin/config/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }, token),
+
+  // Get admin stats
+  getAdminStats: (token) => request('/spin-wheel/admin/stats', {}, token),
 };

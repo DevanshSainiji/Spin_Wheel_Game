@@ -11,6 +11,7 @@ export default function Dashboard({ onNavigate }) {
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('wheel');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [stats, setStats] = useState(null);
 
   const activeWheelRef = useRef(activeWheel);
   const userRef = useRef(user);
@@ -27,11 +28,15 @@ export default function Dashboard({ onNavigate }) {
     loadData();
     const socket = getSocket();
     if (socket) {
-      socket.on('wheel_created', () => loadActiveWheel());
+      socket.on('wheel_created', () => {
+        loadActiveWheel();
+        if (userRef.current?.role === 'ADMIN') loadAdminStats();
+      });
       socket.on('participant_update', () => loadActiveWheel());
       socket.on('wheel_status_change', (data) => {
         loadActiveWheel();
         loadHistory();
+        if (userRef.current?.role === 'ADMIN') loadAdminStats();
         if (data && data.status === 'ACTIVE' && activeWheelRef.current && data.spinWheelId === activeWheelRef.current.id) {
           const currentWheel = activeWheelRef.current;
           const currentUser = userRef.current;
@@ -53,7 +58,11 @@ export default function Dashboard({ onNavigate }) {
   }, []);
 
   async function loadData() {
-    await Promise.all([loadActiveWheel(), loadHistory(), loadTransactions()]);
+    const promises = [loadActiveWheel(), loadHistory(), loadTransactions()];
+    if (user?.role === 'ADMIN') {
+      promises.push(loadAdminStats());
+    }
+    await Promise.all(promises);
   }
 
   async function loadActiveWheel() {
@@ -64,6 +73,9 @@ export default function Dashboard({ onNavigate }) {
   }
   async function loadTransactions() {
     try { const d = await api.getTransactions(token); setTransactions(d.transactions || []); } catch {}
+  }
+  async function loadAdminStats() {
+    try { const d = await api.getAdminStats(token); setStats(d); } catch {}
   }
 
   const [joining, setJoining] = useState(false);
@@ -82,7 +94,11 @@ export default function Dashboard({ onNavigate }) {
 
   async function handleStart() {
     setStarting(true); setError('');
-    try { await api.startWheel(activeWheel.id, token); await loadActiveWheel(); }
+    try {
+      await api.startWheel(activeWheel.id, token);
+      await loadActiveWheel();
+      if (user?.role === 'ADMIN') loadAdminStats();
+    }
     catch (e) { setError(e.message); }
     finally { setStarting(false); }
   }
@@ -134,6 +150,46 @@ export default function Dashboard({ onNavigate }) {
           )}
         </section>
 
+        {user?.role === 'ADMIN' && stats && (
+          <section className="admin-stats-section">
+            <h3>Admin Insights</h3>
+            <div className="admin-stats-grid">
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Total Created</span>
+                <span className="admin-stat-value">{stats.totalCreated}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Completed</span>
+                <span className="admin-stat-value">{stats.totalCompleted}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Aborted</span>
+                <span className="admin-stat-value">{stats.totalAborted}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Waiting / Active</span>
+                <span className="admin-stat-value">{stats.totalWaiting + stats.totalActive}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Admin Commission</span>
+                <span className="admin-stat-value commission">🪙 {stats.totalAdminCommission}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Total Volume Played</span>
+                <span className="admin-stat-value spent">🪙 {stats.totalCoinsSpent}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Platform Fee (10%)</span>
+                <span className="admin-stat-value">🪙 {stats.totalAppPool}</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-label">Total Users</span>
+                <span className="admin-stat-value">{stats.totalUsers}</span>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="dash-tabs">
           <button className={`dash-tab ${activeTab === 'wheel' ? 'active' : ''}`} onClick={() => setActiveTab('wheel')}>🎯 History</button>
           <button className={`dash-tab ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>💰 Transactions</button>
@@ -150,7 +206,7 @@ export default function Dashboard({ onNavigate }) {
         ))}</div>}
       </main>
 
-      {showCreateModal && <CreateWheelModal token={token} onClose={() => setShowCreateModal(false)} onCreated={() => { setShowCreateModal(false); loadActiveWheel(); }} />}
+      {showCreateModal && <CreateWheelModal token={token} onClose={() => setShowCreateModal(false)} onCreated={() => { setShowCreateModal(false); loadActiveWheel(); if (user?.role === 'ADMIN') loadAdminStats(); }} />}
     </div>
   );
 }

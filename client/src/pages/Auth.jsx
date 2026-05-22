@@ -32,8 +32,14 @@ export default function Auth() {
     if (type === 'admin') {
       setEmail('admin@roxstar.com');
       setPassword('admin123');
-    } else {
+    } else if (type === 'alice') {
       setEmail('alice@test.com');
+      setPassword('user123');
+    } else if (type === 'bob') {
+      setEmail('bob@test.com');
+      setPassword('user123');
+    } else if (type === 'charlie') {
+      setEmail('charlie@test.com');
       setPassword('user123');
     }
     setIsLogin(true);
@@ -118,12 +124,18 @@ export default function Auth() {
 
         <div className="test-credentials">
           <p>Quick Login:</p>
-          <div className="test-btns">
+          <div className="test-btns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <button onClick={() => fillTestCredentials('admin')} className="test-btn admin">
               🛡️ Admin
             </button>
-            <button onClick={() => fillTestCredentials('user')} className="test-btn user">
-              👤 Alice (User)
+            <button onClick={() => fillTestCredentials('alice')} className="test-btn user">
+              👤 Alice
+            </button>
+            <button onClick={() => fillTestCredentials('bob')} className="test-btn user">
+              👤 Bob
+            </button>
+            <button onClick={() => fillTestCredentials('charlie')} className="test-btn user">
+              👤 Charlie
             </button>
           </div>
         </div>

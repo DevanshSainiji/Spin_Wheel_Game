@@ -25,12 +25,6 @@ export default function Dashboard({ onNavigate }) {
   }, [user]);
 
   useEffect(() => {
-    if (user?.role === 'ADMIN' && token) {
-      loadAdminStats();
-    }
-  }, [user, token]);
-
-  useEffect(() => {
     loadData();
     const socket = getSocket();
     if (socket) {
@@ -64,7 +58,11 @@ export default function Dashboard({ onNavigate }) {
   }, []);
 
   async function loadData() {
-    await Promise.all([loadActiveWheel(), loadHistory(), loadTransactions()]);
+    const promises = [loadActiveWheel(), loadHistory(), loadTransactions()];
+    if (user?.role === 'ADMIN') {
+      promises.push(loadAdminStats());
+    }
+    await Promise.all(promises);
   }
 
   async function loadActiveWheel() {
@@ -120,92 +118,98 @@ export default function Dashboard({ onNavigate }) {
       </header>
 
       <main className="dash-main">
-        <section className="active-wheel-section">
-          {activeWheel ? (
-            <div className="active-wheel-card">
-              <div className="awc-glow"></div>
-              <div className="awc-header"><h2>🎡 Active Spin Wheel</h2><span className={`status-badge ${activeWheel.status.toLowerCase()}`}>{activeWheel.status}</span></div>
-              <div className="awc-stats">
-                <div className="awc-stat"><span className="stat-label">Entry Fee</span><span className="stat-value">🪙 {activeWheel.entryFee}</span></div>
-                <div className="awc-stat"><span className="stat-label">Players</span><span className="stat-value">{activeWheel.participants?.length || 0}</span></div>
-                <div className="awc-stat"><span className="stat-label">Prize Pool</span><span className="stat-value prize">🪙 {Math.floor(activeWheel.winnerPoolAmount)}</span></div>
-              </div>
-              <div className="awc-participants"><h3>Participants</h3>
-                <div className="participant-chips">
-                  {activeWheel.participants?.map((p) => (<span key={p.id} className={`participant-chip ${p.user.id === user?.id ? 'me' : ''}`}>{p.user.username}</span>))}
-                  {(!activeWheel.participants || activeWheel.participants.length === 0) && <span className="no-participants">No players yet</span>}
+        <div className={`dash-content-layout ${user?.role === 'ADMIN' && stats ? 'has-sidebar' : ''}`}>
+          <div className="dash-left-col">
+            <section className="active-wheel-section">
+              {activeWheel ? (
+                <div className="active-wheel-card">
+                  <div className="awc-glow"></div>
+                  <div className="awc-header"><h2>🎡 Active Spin Wheel</h2><span className={`status-badge ${activeWheel.status.toLowerCase()}`}>{activeWheel.status}</span></div>
+                  <div className="awc-stats">
+                    <div className="awc-stat"><span className="stat-label">Entry Fee</span><span className="stat-value">🪙 {activeWheel.entryFee}</span></div>
+                    <div className="awc-stat"><span className="stat-label">Players</span><span className="stat-value">{activeWheel.participants?.length || 0}</span></div>
+                    <div className="awc-stat"><span className="stat-label">Prize Pool</span><span className="stat-value prize">🪙 {Math.floor(activeWheel.winnerPoolAmount)}</span></div>
+                  </div>
+                  <div className="awc-participants"><h3>Participants</h3>
+                    <div className="participant-chips">
+                      {activeWheel.participants?.map((p) => (<span key={p.id} className={`participant-chip ${p.user.id === user?.id ? 'me' : ''}`}>{p.user.username}</span>))}
+                      {(!activeWheel.participants || activeWheel.participants.length === 0) && <span className="no-participants">No players yet</span>}
+                    </div>
+                  </div>
+                  {error && <div className="awc-error">{error}</div>}
+                  <div className="awc-actions">
+                    {activeWheel.status === 'WAITING' && !hasJoined && <button className="btn-join" onClick={handleJoin} disabled={joining}>{joining ? 'Joining...' : `Join (🪙 ${activeWheel.entryFee})`}</button>}
+                    {activeWheel.status === 'WAITING' && hasJoined && <button className="btn-joined" disabled>✅ Joined</button>}
+                    {canStart && <button className="btn-start" onClick={handleStart} disabled={starting}>{starting ? 'Starting...' : '🚀 Start Now'}</button>}
+                    {(activeWheel.status === 'ACTIVE' || hasJoined) && <button className="btn-view" onClick={() => onNavigate('game', activeWheel.id)}>👁️ View Game</button>}
+                  </div>
                 </div>
-              </div>
-              {error && <div className="awc-error">{error}</div>}
-              <div className="awc-actions">
-                {activeWheel.status === 'WAITING' && !hasJoined && <button className="btn-join" onClick={handleJoin} disabled={joining}>{joining ? 'Joining...' : `Join (🪙 ${activeWheel.entryFee})`}</button>}
-                {activeWheel.status === 'WAITING' && hasJoined && <button className="btn-joined" disabled>✅ Joined</button>}
-                {canStart && <button className="btn-start" onClick={handleStart} disabled={starting}>{starting ? 'Starting...' : '🚀 Start Now'}</button>}
-                {(activeWheel.status === 'ACTIVE' || hasJoined) && <button className="btn-view" onClick={() => onNavigate('game', activeWheel.id)}>👁️ View Game</button>}
-              </div>
+              ) : (
+                <div className="no-wheel-card">
+                  <div className="no-wheel-icon">🎡</div><h2>No Active Spin Wheel</h2><p>Wait for an admin to create one.</p>
+                  {user?.role === 'ADMIN' && <button className="btn-create" onClick={() => setShowCreateModal(true)}>+ Create Spin Wheel</button>}
+                </div>
+              )}
+            </section>
+
+            <div className="dash-tabs">
+              <button className={`dash-tab ${activeTab === 'wheel' ? 'active' : ''}`} onClick={() => setActiveTab('wheel')}>🎯 History</button>
+              <button className={`dash-tab ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>💰 Transactions</button>
             </div>
-          ) : (
-            <div className="no-wheel-card">
-              <div className="no-wheel-icon">🎡</div><h2>No Active Spin Wheel</h2><p>Wait for an admin to create one.</p>
-              {user?.role === 'ADMIN' && <button className="btn-create" onClick={() => setShowCreateModal(true)}>+ Create Spin Wheel</button>}
+
+            {activeTab === 'wheel' && <div className="history-grid">{history.length === 0 ? <p className="empty-state">No completed games yet</p> : history.map((w) => (
+              <div key={w.id} className={`history-card ${w.status.toLowerCase()}`}><div className="history-card-header"><span className={`status-badge ${w.status.toLowerCase()}`}>{w.status}</span><span>🪙 {w.entryFee}</span></div>
+                <div className="history-card-body"><p>Players: {w._count?.participants || 0}</p>{w.winner && <p>🏆 {w.winner.username}</p>}<p className="history-date">{new Date(w.createdAt).toLocaleDateString()}</p></div></div>
+            ))}</div>}
+
+            {activeTab === 'transactions' && <div className="transactions-list">{transactions.length === 0 ? <p className="empty-state">No transactions yet</p> : transactions.map((t) => (
+              <div key={t.id} className={`transaction-row ${t.amount > 0 ? 'credit' : 'debit'}`}><div className="tx-info"><span className="tx-type">{txTypeMap[t.type] || t.type}</span><span className="tx-desc">{t.description}</span></div>
+                <span className={`tx-amount ${t.amount > 0 ? 'credit' : 'debit'}`}>{t.amount > 0 ? '+' : ''}{t.amount}</span></div>
+            ))}</div>}
+          </div>
+
+          {user?.role === 'ADMIN' && stats && (
+            <div className="dash-right-col">
+              <section className="admin-stats-section">
+                <h3>Admin Insights</h3>
+                <div className="admin-stats-grid">
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Total Created</span>
+                    <span className="admin-stat-value">{stats.totalCreated}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Completed</span>
+                    <span className="admin-stat-value">{stats.totalCompleted}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Aborted</span>
+                    <span className="admin-stat-value">{stats.totalAborted}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Waiting / Active</span>
+                    <span className="admin-stat-value">{stats.totalWaiting + stats.totalActive}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Admin Commission</span>
+                    <span className="admin-stat-value commission">🪙 {stats.totalAdminCommission}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Total Volume Played</span>
+                    <span className="admin-stat-value spent">🪙 {stats.totalCoinsSpent}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Platform Fee (10%)</span>
+                    <span className="admin-stat-value">🪙 {stats.totalAppPool}</span>
+                  </div>
+                  <div className="admin-stat-card">
+                    <span className="admin-stat-label">Total Users</span>
+                    <span className="admin-stat-value">{stats.totalUsers}</span>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
-        </section>
-
-        {user?.role === 'ADMIN' && stats && (
-          <section className="admin-stats-section">
-            <h3>Admin Insights</h3>
-            <div className="admin-stats-grid">
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Total Created</span>
-                <span className="admin-stat-value">{stats.totalCreated}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Completed</span>
-                <span className="admin-stat-value">{stats.totalCompleted}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Aborted</span>
-                <span className="admin-stat-value">{stats.totalAborted}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Waiting / Active</span>
-                <span className="admin-stat-value">{stats.totalWaiting + stats.totalActive}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Admin Commission</span>
-                <span className="admin-stat-value commission">🪙 {stats.totalAdminCommission}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Total Volume Played</span>
-                <span className="admin-stat-value spent">🪙 {stats.totalCoinsSpent}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Platform Fee (10%)</span>
-                <span className="admin-stat-value">🪙 {stats.totalAppPool}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Total Users</span>
-                <span className="admin-stat-value">{stats.totalUsers}</span>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <div className="dash-tabs">
-          <button className={`dash-tab ${activeTab === 'wheel' ? 'active' : ''}`} onClick={() => setActiveTab('wheel')}>🎯 History</button>
-          <button className={`dash-tab ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>💰 Transactions</button>
         </div>
-
-        {activeTab === 'wheel' && <div className="history-grid">{history.length === 0 ? <p className="empty-state">No completed games yet</p> : history.map((w) => (
-          <div key={w.id} className={`history-card ${w.status.toLowerCase()}`}><div className="history-card-header"><span className={`status-badge ${w.status.toLowerCase()}`}>{w.status}</span><span>🪙 {w.entryFee}</span></div>
-            <div className="history-card-body"><p>Players: {w._count?.participants || 0}</p>{w.winner && <p>🏆 {w.winner.username}</p>}<p className="history-date">{new Date(w.createdAt).toLocaleDateString()}</p></div></div>
-        ))}</div>}
-
-        {activeTab === 'transactions' && <div className="transactions-list">{transactions.length === 0 ? <p className="empty-state">No transactions yet</p> : transactions.map((t) => (
-          <div key={t.id} className={`transaction-row ${t.amount > 0 ? 'credit' : 'debit'}`}><div className="tx-info"><span className="tx-type">{txTypeMap[t.type] || t.type}</span><span className="tx-desc">{t.description}</span></div>
-            <span className={`tx-amount ${t.amount > 0 ? 'credit' : 'debit'}`}>{t.amount > 0 ? '+' : ''}{t.amount}</span></div>
-        ))}</div>}
       </main>
 
       {showCreateModal && <CreateWheelModal token={token} onClose={() => setShowCreateModal(false)} onCreated={() => { setShowCreateModal(false); loadActiveWheel(); if (user?.role === 'ADMIN') loadAdminStats(); }} />}

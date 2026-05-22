@@ -119,12 +119,12 @@ export default function Game({ wheelId, onBack }) {
         <div className="game-center">
           {/* Wheel Visualization */}
           <div className={`wheel-container ${isActive ? 'spinning' : ''} ${isCompleted ? 'done' : ''}`}>
-            <div className="wheel-ring">
+            <div className="wheel-ring" style={{ '--count': participants.length }}>
               {participants.map((p, i) => {
                 const angle = (360 / Math.max(participants.length, 1)) * i;
                 const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#14b8a6'];
                 return (
-                  <div key={p.id} className={`wheel-segment ${isMe(p.user.id) ? 'me' : ''}`} style={{ '--angle': `${angle}deg`, '--color': colors[i % colors.length] }}>
+                  <div key={p.id} className={`wheel-segment ${isMe(p.user.id) ? 'me' : ''}`} style={{ '--angle': `${angle}deg`, '--color': colors[i % colors.length], '--count': participants.length }}>
                     <span className="segment-name">{p.user.username}</span>
                   </div>
                 );

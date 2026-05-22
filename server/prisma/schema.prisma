@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// User accounts - both regular users and admins
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  coins        Int      @default(1000)
+  role         String   @default("USER") // USER or ADMIN
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdWheels  SpinWheel[]   @relation("WheelCreator")
+  wonWheels      SpinWheel[]   @relation("WheelWinner")
+  participations Participant[]
+  transactions   Transaction[]
+
+  @@map("users")
+}
+
+/// Spin wheel game instances
+model SpinWheel {
+  id                   String   @id @default(uuid())
+  entryFee             Int      @map("entry_fee")
+  status               String   @default("WAITING") // WAITING, ACTIVE, COMPLETED, ABORTED
+  winnerPoolPct        Float    @map("winner_pool_pct")
+  adminPoolPct         Float    @map("admin_pool_pct")
+  appPoolPct           Float    @map("app_pool_pct")
+  winnerPoolAmount     Float    @default(0) @map("winner_pool_amount")
+  adminPoolAmount      Float    @default(0) @map("admin_pool_amount")
+  appPoolAmount        Float    @default(0) @map("app_pool_amount")
+  minParticipants      Int      @default(3) @map("min_participants")
+  eliminationInterval  Int      @default(7) @map("elimination_interval") // seconds
+  autoStartDelay       Int      @default(180) @map("auto_start_delay") // seconds (3 minutes)
+  autoStartAt          DateTime? @map("auto_start_at")
+  startedAt            DateTime? @map("started_at")
+  completedAt          DateTime? @map("completed_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  // Relations
+  createdById String  @map("created_by_id")
+  createdBy   User    @relation("WheelCreator", fields: [createdById], references: [id])
+  winnerId    String? @map("winner_id")
+  winner      User?   @relation("WheelWinner", fields: [winnerId], references: [id])
+
+  participants Participant[]
+  transactions Transaction[]
+
+  @@map("spin_wheels")
+}
+
+/// Participants in a spin wheel game
+model Participant {
+  id               String    @id @default(uuid())
+  eliminatedAt     DateTime? @map("eliminated_at")
+  eliminationOrder Int?      @map("elimination_order")
+  isWinner         Boolean   @default(false) @map("is_winner")
+  joinedAt         DateTime  @default(now()) @map("joined_at")
+
+  // Relations
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  spinWheelId String    @map("spin_wheel_id")
+  spinWheel   SpinWheel @relation(fields: [spinWheelId], references: [id])
+
+  @@unique([userId, spinWheelId])
+  @@map("participants")
+}
+
+/// All coin transactions for audit trail
+model Transaction {
+  id          String   @id @default(uuid())
+  type        String   // ENTRY_FEE, REFUND, WINNER_PAYOUT, ADMIN_PAYOUT, APP_FEE
+  amount      Int      // positive = credit, negative = debit
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  spinWheelId String    @map("spin_wheel_id")
+  spinWheel   SpinWheel @relation(fields: [spinWheelId], references: [id])
+
+  @@map("transactions")
+}
+
+/// Application-level configuration (database-driven)
+model GameConfig {
+  id          String @id @default(uuid())
+  key         String @unique
+  value       String
+  description String?
+
+  @@map("game_config")
+}

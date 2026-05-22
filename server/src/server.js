@@ -15,10 +15,13 @@ const spinWheelRoutes = require('./routes/spinWheel.routes');
 const app = express();
 const server = http.createServer(app);
 
+// Clean CLIENT_URL by removing trailing slash if present
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: clientUrl,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -29,7 +32,7 @@ app.set('io', io);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: clientUrl,
   credentials: true,
 }));
 app.use(express.json());
@@ -71,7 +74,7 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📡 Socket.IO ready`);
-  logger.info(`🌐 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
+  logger.info(`🌐 Client URL: ${clientUrl}`);
 });
 
 // Graceful shutdown

@@ -204,8 +204,11 @@ async function startSpinWheel(req, res, next) {
       data: { status: 'ACTIVE', startedAt: new Date() },
     });
 
-    // Start elimination process
+    // Broadcast status change globally so dashboards can redirect
     const io = req.app.get('io');
+    io.emit('wheel_status_change', { spinWheelId: id, status: 'ACTIVE' });
+
+    // Start elimination process
     runEliminationsAsync(id, io);
 
     logger.info(`Wheel ${id} manually started by ${req.user.username}`);

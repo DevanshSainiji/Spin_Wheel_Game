@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
@@ -12,13 +12,36 @@ export default function Dashboard({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('wheel');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  const activeWheelRef = useRef(activeWheel);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    activeWheelRef.current = activeWheel;
+  }, [activeWheel]);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   useEffect(() => {
     loadData();
     const socket = getSocket();
     if (socket) {
       socket.on('wheel_created', () => loadActiveWheel());
       socket.on('participant_update', () => loadActiveWheel());
-      socket.on('wheel_status_change', () => { loadActiveWheel(); loadHistory(); });
+      socket.on('wheel_status_change', (data) => {
+        loadActiveWheel();
+        loadHistory();
+        if (data && data.status === 'ACTIVE' && activeWheelRef.current && data.spinWheelId === activeWheelRef.current.id) {
+          const currentWheel = activeWheelRef.current;
+          const currentUser = userRef.current;
+          const isParticipant = currentWheel.participants?.some((p) => p.user.id === currentUser?.id);
+          const isCreator = currentWheel.createdById === currentUser?.id;
+          if (isParticipant || isCreator) {
+            onNavigate('game', data.spinWheelId);
+          }
+        }
+      });
     }
     return () => {
       if (socket) {
